@@ -9,10 +9,10 @@ class ExcelController extends Controller
 {
     function __construct(){
         $this->spreadsheet = new Spreadsheet();
+        $this->spreadsheet->getDefaultStyle()->getFont()->setName('Arial');
         $this->sheet = $this->spreadsheet->getActiveSheet();
         $this->sheet->getDefaultRowDimension()->setRowHeight(24);
         $this->sheet->getRowDimension(1)->setRowHeight(9.2);
-        //$this->update_bg('A1:FO414','ffffff');
         $this->sheet->getStyle('A:CJ')->getAlignment()->setHorizontal('center');
         $this->sheet->getStyle('A:CJ')->getAlignment()->setVertical('center');
     }
@@ -30,6 +30,36 @@ class ExcelController extends Controller
         }
     }
     private function set_borders(){
+        $right = [
+            'borders' => [
+                'right' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                ],
+            ],
+        ];
+        $bottom = [
+            'borders' => [
+                'bottom' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                ],
+            ],
+        ];
+        for ($j = 5; $j <= 12; $j++)
+        for ($i = 5; $i <= 87; $i = $i +4 ){
+            $start = $this->get_column($i);
+            $end = $this->get_column($i + 3);
+            $this->sheet->getStyle("$end$j")->applyFromArray($right);
+            $this->sheet->getStyle("$start$j:$end$j")->applyFromArray($bottom);
+        }
+        $inside = [
+            'borders' => [
+                'inside' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                ],
+            ],
+        ];
+        $this->sheet->getStyle('C2:CJ4')->applyFromArray($inside);
+        $this->sheet->getStyle('B6:D12')->applyFromArray($inside);
         $outtline = [
             'borders' => [
                 'outline' => [
@@ -38,24 +68,27 @@ class ExcelController extends Controller
             ],
         ];
         $this->sheet->getStyle('C2:CJ4')->applyFromArray($outtline);
-        $this->sheet->getStyle('B5')->applyFromArray($outtline);
-        $this->sheet->getStyle('E5:CJ12')->applyFromArray($outtline);
         $this->sheet->getStyle('B6:D12')->applyFromArray($outtline);
-        $inside = [
-            'borders' => [
-                'inside' => [
-                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                ],
-            ],
-        ];
-        $this->sheet->getStyle('E2:CJ12')->applyFromArray($inside);
+        $this->sheet->getStyle('E5:CJ12')->applyFromArray($outtline);
+        $this->sheet->getStyle('B5:CJ5')->applyFromArray($outtline);
     }
-    private function update_bg($columns, $color){
+    private function make_bg($columns, $color){
         $this->sheet->getStyle($columns)
         ->getFill()
         ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
         ->getStartColor()
         ->setARGB($color);
+    }
+    private function update_bg(){
+        $this->make_bg('A1:D414','ffffff');
+        $this->make_bg('E5:FO5','ffffff');
+        $this->make_bg('E13:FO414','ffffff');
+        $this->make_bg('CK1:FO12','ffffff');
+        $this->make_bg('A1:CK1','ffffff');
+        $this->make_bg('C2:CG2','E7E6E6');
+        $this->make_bg('C3:CG3','E2EFDA');
+        $this->make_bg('C4:CG4','FCE4D6');
+        $this->make_bg('B5:CJ5','E7E6E6');
     }
     private function update_width(){
         $this->sheet->getColumnDimension('B')->setWidth(40.21);
@@ -88,15 +121,16 @@ class ExcelController extends Controller
             $this->sheet->mergeCells($start.'2:'.$end.'2');
             $this->sheet->mergeCells($start.'3:'.$end.'3');
             $this->sheet->mergeCells($start.'4:'.$end.'4');
+            $this->sheet->mergeCells($start.'5:'.$end.'5');
             $i = $i + 4;
         };
     }
     private function set_bold_text($column, $text){
-        $richText = new \PhpOffice\PhpSpreadsheet\RichText\RichText();
-        $payable = $richText->createTextRun($text);
-        $payable->getFont()->setBold(true)->setSize(14);
-        $this->sheet->getCell($column)->setValue($richText);
-        $this->sheet->getStyle($column)->getFont()->setSize(14);
+        $this->sheet->getCell($column)->setValue($text);
+        $this->sheet->getStyle($column)
+        ->getFont()
+        ->setBold(true)
+        ->setSize(14);
     }
     private function add_date(){
         $this->set_bold_text('B2', "MERCREDI");
@@ -120,6 +154,8 @@ class ExcelController extends Controller
         $this->merge_cells();
         $this->add_headers();
         $this->set_borders();
+        $this->update_bg();
+        
         $writer = new Xlsx($this->spreadsheet);
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment; filename="'. urlencode("file.xlsx").'"');
