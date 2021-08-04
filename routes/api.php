@@ -18,13 +18,10 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::get('/',[ExcelController::class, 'index']);
-
 Route::get('/export', function (){
     $company = request('company');
     $day = request('day');
-    Excel::create('Filename', function($excel) {
-
-    })->export('xls');
-    return "company $company and date is $day";
+    $excel_obj = new ExcelController();
+    $excel_obj->index($company, $day);
+    return "company = $company and date = $day";
 });
