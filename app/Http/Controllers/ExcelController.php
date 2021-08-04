@@ -11,10 +11,13 @@ class ExcelController extends Controller
         $this->spreadsheet = new Spreadsheet();
         $this->spreadsheet->getDefaultStyle()->getFont()->setName('Arial');
         $this->sheet = $this->spreadsheet->getActiveSheet();
-        $this->sheet->getStyle('A:CJ')->getAlignment()->setHorizontal('center');
-        $this->sheet->getStyle('A:CJ')->getAlignment()->setVertical('center');
         $this->alphabet = array('A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z');
+    }
+    private function update_alignment(){
         $this->sheet->getStyle('B')->getAlignment()->setHorizontal('left');
+        $this->sheet->getStyle('E2:CJ5')->getAlignment()->setHorizontal('center');
+        $this->sheet->getStyle('C6:D999')->getAlignment()->setHorizontal('center');
+        $this->sheet->getStyle('A:CJ')->getAlignment()->setVertical('center');
     }
     private function get_column($i){
         if ($i <= 26){
@@ -45,17 +48,6 @@ class ExcelController extends Controller
         $this->sheet->getStyle($columns)->applyFromArray($outtline);
     }
     private function set_borders(){
-        $outtline = [
-            'borders' => [
-                'outline' => [
-                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_MEDIUM,
-                ],
-            ],
-        ];
-        $this->sheet->getStyle('C2:CJ4')->applyFromArray($outtline);
-        $this->sheet->getStyle('B6:D12')->applyFromArray($outtline);
-        $this->sheet->getStyle('E5:CJ12')->applyFromArray($outtline);
-        $this->sheet->getStyle('B5:CJ5')->applyFromArray($outtline);
         $right = [
             'borders' => [
                 'right' => [
@@ -86,6 +78,19 @@ class ExcelController extends Controller
         ];
         $this->sheet->getStyle('C2:CJ4')->applyFromArray($inside);
         $this->sheet->getStyle('B6:D12')->applyFromArray($inside);
+    }
+    private function add_outline_borders(){
+        $outtline = [
+            'borders' => [
+                'outline' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_MEDIUM,
+                ],
+            ],
+        ];
+        $this->sheet->getStyle('C2:CJ4')->applyFromArray($outtline);
+        $this->sheet->getStyle('B6:D12')->applyFromArray($outtline);
+        $this->sheet->getStyle('E5:CJ12')->applyFromArray($outtline);
+        $this->sheet->getStyle('B5:CJ5')->applyFromArray($outtline);
     }
     private function make_bg($columns, $color){
         $this->sheet->getStyle($columns)
@@ -283,6 +288,7 @@ class ExcelController extends Controller
     }
     public function index($company, $day){
         $this->update_width();
+        $this->update_alignment();
         $this->add_date();
         $this->merge_cells();
         $this->add_headers();
@@ -293,8 +299,8 @@ class ExcelController extends Controller
         $this->add_collaborators_number();        
         $this->add_collaborators_time();        
         $this->add_collaborators();        
-        $this->add_working_hours();        
-        $this->sheet->getRowDimension('1')->setRowHeight(22.45);
+        $this->add_working_hours();    
+        $this->add_outline_borders();    
         $this->sheet->getDefaultRowDimension()->setRowHeight(24.45);
         $writer = new Xlsx($this->spreadsheet);
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
