@@ -23,5 +23,5 @@ Route::get('/export', function (){
     $day = request('day');
     $excel_obj = new ExcelController();
     $excel_obj->index($company, $day);
-    return "company = $company and date = $day";
+    return "company = $company and date is $day";
 });
