@@ -120,10 +120,10 @@ class ExcelController extends Controller
         while ($i <= 88){
             $column = $this->get_column($i);
             if ($i === $j){
-                $this->sheet->getColumnDimension($column)->setWidth(2.4);
+                $this->sheet->getColumnDimension($column)->setWidth(2.1);
                 $j = $j + 4;
             }else{
-                $this->sheet->getColumnDimension($column)->setWidth(2.2);
+                $this->sheet->getColumnDimension($column)->setWidth(1.95);
             };
             $i++;
         };
@@ -286,7 +286,7 @@ class ExcelController extends Controller
             $this->set_text("D$row", $collaborators[$i][2], false, 12);
         }
     }
-    public function index($company, $day){
+    public function index(){
         $this->update_width();
         $this->update_alignment();
         $this->add_date();
