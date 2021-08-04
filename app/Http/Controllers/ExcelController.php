@@ -11,8 +11,6 @@ class ExcelController extends Controller
         $this->spreadsheet = new Spreadsheet();
         $this->spreadsheet->getDefaultStyle()->getFont()->setName('Arial');
         $this->sheet = $this->spreadsheet->getActiveSheet();
-        $this->sheet->getDefaultRowDimension()->setRowHeight(24);
-        $this->sheet->getRowDimension(1)->setRowHeight(9.2);
         $this->sheet->getStyle('A:CJ')->getAlignment()->setHorizontal('center');
         $this->sheet->getStyle('A:CJ')->getAlignment()->setVertical('center');
     }
@@ -28,6 +26,9 @@ class ExcelController extends Controller
             };
             return $alphabet[$first-1].''.$alphabet[$second-1];
         }
+    }
+    private function update_row_height(){
+        $this->sheet->getRowDimension('2')->setRowHeight(22.9);
     }
     private function set_borders(){
         $right = [
@@ -108,6 +109,11 @@ class ExcelController extends Controller
             $i++;
         };
     }
+    public function to_excel_time($time){ 
+        $timestamp = strtotime($time);
+        $excelTimestamp = \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($timestamp);
+        return $excelTimestamp;
+    }
     private function merge_cells(){
         $this->sheet->mergeCells("B5:D5");
         $this->sheet->mergeCells("C2:D2");
@@ -148,6 +154,85 @@ class ExcelController extends Controller
         $this->sheet->getStyle('C4')->getAlignment()->setHorizontal('right');
         $this->sheet->getStyle('B5')->getAlignment()->setHorizontal('left');
     }
+    public function add_data($data, $row, $is_date){
+        $j = 5;
+        for ($i = 0; $i <= 20; $i++){
+            $start = $this->get_column($j);
+            $end = $this->get_column($j+3);
+            if ($is_date){
+                $this->sheet->setCellValue(
+                    "$start$row", 
+                    $this->to_excel_time($data[$i])
+                );
+                $this->sheet->getStyle("$start$row:$end$row")
+                ->getNumberFormat()
+                ->setFormatCode(\PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_DATE_TIME3);
+            }else{
+                $this->sheet->setCellValue("$start$row", $data[$i]);
+            }
+            $j= $j + 4; 
+        }
+    }
+    public function add_planned(){
+        $data = array('00:00:00','00:30:00','03:00:00','04:00:00','04:00:00','04:00:00','04:00:00','04:00:00','03:30:00','05:00:00','05:00:00','03:30:00','03:00:00','03:00:00','03:00:00','03:00:00','03:00:00','03:00:00','02:00:00','01:30:00','00:30:00');
+        $this->add_data($data, '2', true);
+    }
+    public function add_figures(){
+        $data = array('0','100','200','300','1430','1630','1900','2140','1800','900','400','500','800','1400','1600','2800','2600','1400','1100','200','0');
+        $this->add_data($data, '3', false);
+    }
+    public function add_collaborators_time(){
+        $data = array('06:00:00','07:00:00','08:00:00','09:00:00','10:00:00','11:00:00','12:00:00','13:00:00','14:00:00','15:00:00','16:00:00','17:00:00','18:00:00','19:00:00','20:00:00','21:00:00','22:00:00','23:00:00','00:00:00','01:00:00','02:00:00');
+        $this->add_data($data, '5', true);
+    }
+    public function add_collaborators_number(){
+        $data = [0, [1,1],[1,1],[3,5],[4,4],[4,4],[5,5],[4,4],[8,6],[5,6],[2,4],[5,6],[3,4],[3,4],[3,3],[3,3],[3,3],[3,3],[3,3],[3,3],[3,3]];
+        $j = 5;
+        for ($i=0; $i<=20; $i++ ){
+            $column = $this->get_column($j);
+            if ($data[$i] == 0){
+                $this->sheet->setCellValue($column.'4',$data[$i]);
+                $j = $j + 4;
+                continue;
+            }
+            $value = $data[$i][0].'/'.$data[$i][1];
+            if ($data[$i][0] != $data[$i][1]){
+                $this->sheet->setCellValue($column.'4',$value);
+                $this->make_bg($column.'4',"F4B084");
+                $j = $j + 4;
+                continue;
+            }
+            $this->sheet->setCellValue($column.'4',$value);
+            $j = $j + 4;
+        }
+    }
+    private function get_column_index($column){
+        $index = ""
+        foreach ($column as $char){
+            
+        }
+    } 
+    public function colorize_working_hours($start, $len, $color, $text){
+        make_bg()
+    }
+    public function add_collaborators(){
+        $collaborators = [
+            ["NOM PRENOM","07:30 - 14:30",7],
+            ["Salah Saadaoui","08:00 - 17:00",9],
+            ["Caddy Dz","08:00 - 17:30",9.5],
+            ["John Doe","09:00 - 17:00",9],
+            ["SALIM DJERBOUH","15:00 - 23:00",8],
+            ["Elon Musk","15:00 - 01:30",10.5],
+            ["Jane Doe","18:00 - 02:30",8.5],
+        ]
+        for ($i = 0; $i <= count($collaborators) - 1 ; $i++ ){
+            $row = $i + 6
+            $this->sheet->setCellValue("B$row", $collaborators[i][0])
+            $this->sheet->setCellValue("C$row", $collaborators[i][1])
+            $this->sheet->setCellValue("D$row", $collaborators[i][2])
+        }
+
+    }
     public function index(){
         $this->update_width();
         $this->add_date();
@@ -155,7 +240,12 @@ class ExcelController extends Controller
         $this->add_headers();
         $this->set_borders();
         $this->update_bg();
-        
+        $this->add_planned();        
+        $this->add_figures();        
+        $this->add_collaborators_number();        
+        $this->add_collaborators_time();        
+        //$this->update_row_height();
+        $this->sheet->getDefaultRowDimension()->setRowHeight(24.45);
         $writer = new Xlsx($this->spreadsheet);
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment; filename="'. urlencode("file.xlsx").'"');
