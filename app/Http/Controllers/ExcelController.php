@@ -13,24 +13,49 @@ class ExcelController extends Controller
         $this->sheet = $this->spreadsheet->getActiveSheet();
         $this->sheet->getStyle('A:CJ')->getAlignment()->setHorizontal('center');
         $this->sheet->getStyle('A:CJ')->getAlignment()->setVertical('center');
+        $this->alphabet = array('A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z');
+        $this->sheet->getStyle('B')->getAlignment()->setHorizontal('left');
     }
     private function get_column($i){
-        $alphabet = array('A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z');
         if ($i <= 26){
-            return $alphabet[$i-1];
+            return $this->alphabet[$i-1];
         }else{
             $first = floor($i/26);
             $second = $i - 26 * $first ;
             if($second ==0){
-                return $alphabet[$first-2 ].''.$alphabet[25];
+                return $this->alphabet[$first-2 ].''.$this->alphabet[25];
             };
-            return $alphabet[$first-1].''.$alphabet[$second-1];
+            return $this->alphabet[$first-1].''.$this->alphabet[$second-1];
         }
     }
     private function update_row_height(){
         $this->sheet->getRowDimension('2')->setRowHeight(22.9);
     }
+    private function update_borders($columns){
+        $outtline = [
+            'borders' => [
+                'outline' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                ],
+                'inside' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_NONE,
+                ]
+            ],
+        ];
+        $this->sheet->getStyle($columns)->applyFromArray($outtline);
+    }
     private function set_borders(){
+        $outtline = [
+            'borders' => [
+                'outline' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_MEDIUM,
+                ],
+            ],
+        ];
+        $this->sheet->getStyle('C2:CJ4')->applyFromArray($outtline);
+        $this->sheet->getStyle('B6:D12')->applyFromArray($outtline);
+        $this->sheet->getStyle('E5:CJ12')->applyFromArray($outtline);
+        $this->sheet->getStyle('B5:CJ5')->applyFromArray($outtline);
         $right = [
             'borders' => [
                 'right' => [
@@ -61,17 +86,6 @@ class ExcelController extends Controller
         ];
         $this->sheet->getStyle('C2:CJ4')->applyFromArray($inside);
         $this->sheet->getStyle('B6:D12')->applyFromArray($inside);
-        $outtline = [
-            'borders' => [
-                'outline' => [
-                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THICK,
-                ],
-            ],
-        ];
-        $this->sheet->getStyle('C2:CJ4')->applyFromArray($outtline);
-        $this->sheet->getStyle('B6:D12')->applyFromArray($outtline);
-        $this->sheet->getStyle('E5:CJ12')->applyFromArray($outtline);
-        $this->sheet->getStyle('B5:CJ5')->applyFromArray($outtline);
     }
     private function make_bg($columns, $color){
         $this->sheet->getStyle($columns)
@@ -131,16 +145,16 @@ class ExcelController extends Controller
             $i = $i + 4;
         };
     }
-    private function set_bold_text($column, $text){
+    private function set_text($column, $text, $bold=true, $size=14){
         $this->sheet->getCell($column)->setValue($text);
         $this->sheet->getStyle($column)
         ->getFont()
-        ->setBold(true)
-        ->setSize(14);
+        ->setBold($bold)
+        ->setSize($size);
     }
     private function add_date(){
-        $this->set_bold_text('B2', "MERCREDI");
-        $this->set_bold_text('B3', "22 JUILLET 2021 - S29");
+        $this->set_text('B2', "MERCREDI");
+        $this->set_text('B3', "22 JUILLET 2021 - S29");
         $this->sheet->getStyle('B2')->getAlignment()->setHorizontal('left');
         $this->sheet->getStyle('B3')->getAlignment()->setHorizontal('left');
     }
@@ -184,6 +198,9 @@ class ExcelController extends Controller
     public function add_collaborators_time(){
         $data = array('06:00:00','07:00:00','08:00:00','09:00:00','10:00:00','11:00:00','12:00:00','13:00:00','14:00:00','15:00:00','16:00:00','17:00:00','18:00:00','19:00:00','20:00:00','21:00:00','22:00:00','23:00:00','00:00:00','01:00:00','02:00:00');
         $this->add_data($data, '5', true);
+        $this->sheet->getStyle('B5:CJ5')
+        ->getFont()
+        ->setSize(12);
     }
     public function add_collaborators_number(){
         $data = [0, [1,1],[1,1],[3,5],[4,4],[4,4],[5,5],[4,4],[8,6],[5,6],[2,4],[5,6],[3,4],[3,4],[3,3],[3,3],[3,3],[3,3],[3,3],[3,3],[3,3]];
@@ -206,14 +223,46 @@ class ExcelController extends Controller
             $j = $j + 4;
         }
     }
-    private function get_column_index($column){
-        $index = ""
-        foreach ($column as $char){
-            
+    private function get_index($column){
+        $length = strlen($column);
+        if ($length === 1 ){
+            return array_search($column, $this->alphabet) ;
+        }
+        $arr = array();
+        for ($i=0; $i < $length; $i++){
+            array_push($arr, array_search($column[$i], $this->alphabet));
+        }
+        $index = ($arr[0] + 1) * 26 + $arr[1] ;
+        return $index;
+    } 
+    public function colorize_working_hours($start, $len, $row, $color, $text=null){
+        $start_index = $this->get_index($start);
+        $end_column = $this->get_column($start_index + $len);
+        $this->make_bg("$start$row:$end_column$row", $color);
+        $this->update_borders("$start$row:$end_column$row");
+        if ($text){
+            for ($i=0; $i < strlen($text); $i++){
+                $char_column = $this->get_column($start_index+1 + $i);
+                $this->set_text(
+                    "$char_column$row",
+                    $text[$i],
+                    false
+                );
+            }
         }
     } 
-    public function colorize_working_hours($start, $len, $color, $text){
-        make_bg()
+    public function add_working_hours(){
+        $this->colorize_working_hours("K", 10, 6, "4472C4", "CT");
+        $this->colorize_working_hours("U", 16, 6, "D9E1F2", "AB");
+        $this->colorize_working_hours("AK", 2, 6, "FFE699", "FT");
+        $this->colorize_working_hours("M", 36, 7, "A5A5A5");
+        $this->colorize_working_hours("M", 38, 8, "A5A5A5");
+        $this->colorize_working_hours("Q", 15, 9, "FFE699","C");
+        $this->colorize_working_hours("AF", 5, 9, "92D050","P");
+        $this->colorize_working_hours("AK", 16, 9, "E2EFDA","D");
+        $this->colorize_working_hours("AO", 36, 10, "A5A5A5");
+        $this->colorize_working_hours("AO", 42, 11, "A5A5A5");
+        $this->colorize_working_hours("BA", 34, 12, "A5A5A5");
     }
     public function add_collaborators(){
         $collaborators = [
@@ -224,16 +273,15 @@ class ExcelController extends Controller
             ["SALIM DJERBOUH","15:00 - 23:00",8],
             ["Elon Musk","15:00 - 01:30",10.5],
             ["Jane Doe","18:00 - 02:30",8.5],
-        ]
+        ];
         for ($i = 0; $i <= count($collaborators) - 1 ; $i++ ){
-            $row = $i + 6
-            $this->sheet->setCellValue("B$row", $collaborators[i][0])
-            $this->sheet->setCellValue("C$row", $collaborators[i][1])
-            $this->sheet->setCellValue("D$row", $collaborators[i][2])
+            $row = $i + 6;
+            $this->set_text("B$row", $collaborators[$i][0], false, 12);
+            $this->set_text("C$row", $collaborators[$i][1], false, 12);
+            $this->set_text("D$row", $collaborators[$i][2], false, 12);
         }
-
     }
-    public function index(){
+    public function index($company, $day){
         $this->update_width();
         $this->add_date();
         $this->merge_cells();
@@ -244,7 +292,9 @@ class ExcelController extends Controller
         $this->add_figures();        
         $this->add_collaborators_number();        
         $this->add_collaborators_time();        
-        //$this->update_row_height();
+        $this->add_collaborators();        
+        $this->add_working_hours();        
+        $this->sheet->getRowDimension('1')->setRowHeight(22.45);
         $this->sheet->getDefaultRowDimension()->setRowHeight(24.45);
         $writer = new Xlsx($this->spreadsheet);
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
